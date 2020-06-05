@@ -5,6 +5,7 @@ import { Map, TileLayer, Marker } from 'react-leaflet';
 import { LeafletMouseEvent } from 'leaflet';
 import axios from 'axios';
 
+import Dropzone from '../../components/Dropzone';
 import api from './../../services/api';
 import logo from './../../assets/logo.svg';
 import './styles.css';
@@ -49,6 +50,7 @@ const CreatePoint: React.FC = () => {
     0,
   ]);
 
+  const [selectedFile, setSelectedFile] = useState<File>();
   const [selectedUf, setSelectedUf] = useState('0');
   const [selectedCity, setSelectedCity] = useState('0');
   const [selectedPosition, setSelectedPosition] = useState<[number, number]>([
@@ -58,9 +60,21 @@ const CreatePoint: React.FC = () => {
 
   // Initial position
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition((position) => {
-      setInitialPosition([position.coords.latitude, position.coords.longitude]);
-    });
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setInitialPosition([
+          position.coords.latitude,
+          position.coords.longitude,
+        ]);
+      },
+      (error) => {
+        console.log(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+      }
+    );
   }, []);
 
   // Get items
@@ -142,16 +156,18 @@ const CreatePoint: React.FC = () => {
     const city = selectedCity;
     const [latitude, longitude] = selectedPosition;
 
-    const data = {
-      name,
-      email,
-      whatsapp,
-      latitude,
-      longitude,
-      city,
-      uf,
-      items,
-    };
+    const data = new FormData();
+    data.append('name', name);
+    data.append('email', email);
+    data.append('whatsapp', whatsapp);
+    data.append('latitude', String(latitude));
+    data.append('longitude', String(longitude));
+    data.append('city', city);
+    data.append('uf', uf);
+    data.append('items', items.join(','));
+    if (selectedFile) {
+      data.append('image', selectedFile);
+    }
 
     await api.post('/points', data);
 
@@ -175,6 +191,8 @@ const CreatePoint: React.FC = () => {
         <h1>
           Cadastro do <br /> ponto de coleta
         </h1>
+
+        <Dropzone onFileUploaded={setSelectedFile} />
 
         <fieldset>
           <legend>
